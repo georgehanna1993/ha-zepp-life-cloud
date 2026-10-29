@@ -1,4 +1,4 @@
-# Zepp Life Cloud for Home Assistant — experimental v0.2.0
+# Zepp Life Cloud for Home Assistant — experimental v0.3.0
 
 Native custom integration for Xiaomi scales connected through Zepp Life.
 This is a first implementation, NOT a confirmed working replacement against a live account.
@@ -11,8 +11,8 @@ It deliberately makes no claim of permanent unattended authentication.
 - Runs as an HA integration; no SmartScaleConnect add-on, MQTT or Bluetooth needed.
 - Reads the main scale profile (-1) or a numeric family member ID.
 - Creates weight, BMI, body fat, body water, muscle mass, bone mass, protein percentage,
-  visceral fat index, BMR, body age, body score, body type code, standard weight,
-  impedance, height, balance score, balance time, last weigh-in and last sync sensors.
+  visceral fat index, BMR, body age, body score, body type, standard weight, impedance, height, balance score, last measurement and last sync sensors.
+- Groups sensor names by measurement, composition, metabolism, reference values and sync status, with a distinct icon for every known metric. The seconds-based one-foot balance sensor is omitted.
 - Automatically creates separate sensors for extra numeric body metrics returned by the cloud.
   Technical fields such as source and device type are excluded. Raw numeric summaries are also
   available as weight-sensor attributes.

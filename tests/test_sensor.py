@@ -46,6 +46,12 @@ class SensorTests(unittest.TestCase):
         self.coordinator=types.SimpleNamespace(entry=self.entry,data={"latest":{"generatedTime":100,"summary":{"weight":86.5,"fatRate":20,"bodyStyle":0}},"last_sync":"now"})
     def entity(self,key,raw=False):
         return sensor.ZeppSensor(self.coordinator,key,key,None,raw=raw)
+    def test_sensor_icons_and_seconds_metric_removed(self):
+        self.assertEqual(self.entity("weight")._attr_icon, "mdi:scale-bathroom")
+        self.assertEqual(self.entity("fatRate")._attr_icon, "mdi:percent")
+        self.assertEqual(self.entity("last_sync")._attr_icon, "mdi:cloud-sync-outline")
+        self.assertNotIn("oneFootMeasureTime", [key for key, _, _ in const.METRICS])
+
     def test_cloud_value_direct(self):
         self.assertEqual(self.entity("fatRate").native_value,20)
     def test_missing_metric_is_unknown(self):

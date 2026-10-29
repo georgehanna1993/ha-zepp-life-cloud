@@ -9,11 +9,32 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, METRICS
 
+SENSOR_ICONS = {
+    "weight": "mdi:scale-bathroom",
+    "bmi": "mdi:calculator-variant",
+    "fatRate": "mdi:percent",
+    "bodyWaterRate": "mdi:water-percent",
+    "muscleRate": "mdi:arm-flex",
+    "boneMass": "mdi:bone",
+    "proteinRatio": "mdi:food-steak",
+    "visceralFat": "mdi:heart-pulse",
+    "metabolism": "mdi:fire",
+    "muscleAge": "mdi:calendar-account",
+    "bodyScore": "mdi:star-circle",
+    "bodyStyle": "mdi:account",
+    "standBodyWeight": "mdi:scale",
+    "impedance": "mdi:lightning-bolt",
+    "height": "mdi:human-male-height",
+    "bodyBalanceScore": "mdi:scale-balance",
+    "last_weigh_in": "mdi:clock-check-outline",
+    "last_sync": "mdi:cloud-sync-outline",
+}
+
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = [ZeppSensor(coordinator, key, name, unit) for key, name, unit in METRICS]
-    entities += [ZeppSensor(coordinator, "last_weigh_in", "Last weigh-in", None),
-                 ZeppSensor(coordinator, "last_sync", "Last successful sync", None)]
+    entities += [ZeppSensor(coordinator, "last_weigh_in", "Timing · Last measurement", None),
+                 ZeppSensor(coordinator, "last_sync", "Sync · Last successful sync", None)]
     async_add_entities(entities)
     known = {key for key, _, _ in METRICS}
     known.update(("last_weigh_in", "last_sync"))
@@ -42,6 +63,7 @@ class ZeppSensor(CoordinatorEntity, SensorEntity):
         self.key = key
         self.raw = raw
         self._attr_name = name
+        self._attr_icon = SENSOR_ICONS.get(key, "mdi:chart-box-outline")
         self._attr_unique_id = coordinator.entry.unique_id + "_" + key
         self._attr_native_unit_of_measurement = unit
         self._attr_device_info = DeviceInfo(
