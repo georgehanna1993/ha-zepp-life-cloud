@@ -23,6 +23,12 @@
 
 > 📱 **Before setup:** your scale must be paired with Zepp Life and the app must have synced at least one measurement. If it is already paired and synced, you do not need to pair it again or be at home.
 
+## ✅ Before you sign in
+
+> 🪪 **Xiaomi account:** If you do not have one, create it at [account.xiaomi.com](https://account.xiaomi.com/). In the **existing Zepp Life profile**, open **Profile → Settings → Account and security** and add/link that Xiaomi account. If you originally used Google, keep that same Zepp Life profile—do not create a second one. If the Xiaomi account is already linked, skip this step.
+>
+> ⚖️ **Scale:** If the scale is not paired yet, open **Profile → Add device** in Zepp Life, choose your scale and follow the pairing prompts. Then sync at least one measurement. If it is already paired and synced, do not pair it again.
+
 ## 🔐 Sign in — browser only
 
 1. In the Home Assistant form, copy the **Xiaomi sign-in URL** and open it in a browser tab.
