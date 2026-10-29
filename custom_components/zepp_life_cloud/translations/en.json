@@ -1,0 +1,67 @@
+{
+  "title": "Zepp Life Cloud",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Zepp Life",
+        "description": "Choose a Xiaomi login method for your linked Zepp Life account.",
+        "menu_options": {
+          "password": "Xiaomi email / ID and password",
+          "session": "Existing Xiaomi session",
+          "browser": "Sign in through Xiaomi in your browser"
+        }
+      },
+      "browser": {
+        "title": "Sign in to Xiaomi",
+        "description": "[Open Xiaomi sign-in]({login_url}) in your browser, complete any verification, and wait for the Zepp callback page. Copy its full address (or just the code value) into the Authorization field below. The code is short-lived; enter it only in this Home Assistant form.\n\n{error_detail}",
+        "data": {
+          "login_url": "Xiaomi sign-in link (copy into a new browser tab)",
+          "authorization": "Zepp callback URL or authorization code",
+          "member_id": "Scale family member ID (-1 = main profile)"
+        }
+      },
+      "password": {
+        "title": "Xiaomi password login",
+        "description": "Use the Xiaomi account paired inside Zepp Life. Google credentials do not work here. Automatic cloud polling starts after setup.\\n\\n{error_detail}",
+        "data": {
+          "name": "Profile name",
+          "username": "Xiaomi email or account ID",
+          "password": "Xiaomi password",
+          "member_id": "Scale family member ID (-1 = main profile)"
+        }
+      },
+      "session": {
+        "title": "Xiaomi session login",
+        "description": "Use Xiaomi userId and passToken from your own signed-in Xiaomi browser session or go2rtc Xiaomi login. This is NOT a device token or Zepp apptoken. Enter secrets here only. See README for instructions. Session reuse is experimental and may need reauthentication when Xiaomi expires it.\\n\\n{error_detail}",
+        "data": {
+          "name": "Profile name",
+          "userId": "Xiaomi userId",
+          "passToken": "Xiaomi passToken",
+          "member_id": "Scale family member ID (-1 = main profile)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "{error_detail}",
+      "cloud_error": "{error_detail}",
+      "invalid_callback": "{error_detail}",
+      "cannot_connect": "Unable to reach Xiaomi / Zepp cloud.",
+      "wrong_account": "Sign in to the same Zepp Life account and member as this entry."
+    },
+    "abort": {
+      "already_configured": "This Zepp Life profile is already configured.",
+      "reauth_successful": "Authentication updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Automatic cloud sync",
+        "description": "Checks for measurements uploaded by the Zepp Life phone app. No Bluetooth receiver is needed at HA.",
+        "data": {
+          "interval": "Poll interval (minutes, 15–1440)"
+        }
+      }
+    }
+  }
+}

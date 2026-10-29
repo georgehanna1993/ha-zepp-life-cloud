@@ -1,0 +1,14 @@
+{
+  "domain": "zepp_life_cloud",
+  "name": "Zepp Life Cloud",
+  "version": "0.2.0",
+  "config_flow": true,
+  "documentation": "https://github.com/georgehanna1993/ha-zepp-life-cloud",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "codeowners": [
+    "@georgehanna1993"
+  ],
+  "issue_tracker": "https://github.com/georgehanna1993/ha-zepp-life-cloud/issues",
+  "integration_type": "service"
+}
