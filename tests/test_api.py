@@ -134,6 +134,14 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
         client = api.ZeppClient(session, {"zepp_user_id":"123","app_token":"expired","username":"u","password":"p"})
         self.assertIsNotNone(await client.latest())
         self.assertEqual(len(session.calls),7)
+    async def test_exchange_uses_upstream_canonical_device_uuid(self):
+        session = Session(token())
+        client = api.ZeppClient(session, {})
+        await client.exchange_code("auth-code")
+        data = session.calls[0][2]["data"]
+        self.assertRegex(data["device_id"], r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+        self.assertEqual(data["third_name"], "xiaomi-hm-mifit")
+
     async def test_wrong_account_cannot_replace_existing_account(self):
         client = api.ZeppClient(Session(token("999")), {"zepp_user_id":"123"})
         with self.assertRaises(api.AuthError) as ctx:

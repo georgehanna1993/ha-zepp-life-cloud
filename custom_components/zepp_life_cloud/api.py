@@ -34,6 +34,8 @@ class AuthError(CloudError):
         self.code = code if re.fullmatch(r"[A-Za-z0-9_-]{1,48}", code) else "unknown"
         self.verification = bool(payload.get("notificationUrl") or payload.get("captchaUrl"))
         message = f"Authentication failed at {stage} (code {self.code})."
+        if stage == "zepp_token_exchange" and self.code == "0106":
+            message += " Zepp rejected third-party verification after Xiaomi sign-in."
         if self.verification:
             message += " Xiaomi requires verification/captcha; use Xiaomi session setup."
         super().__init__(message)
@@ -93,7 +95,8 @@ class ZeppClient:
         self.credentials = dict(credentials)
         self.user_id = str(credentials.get("zepp_user_id", ""))
         self.app_token = credentials.get("app_token", "")
-        self.device_id = credentials.get("device_id") or uuid.uuid4().hex
+        # Match the canonical UUID format sent by the upstream Zepp client.
+        self.device_id = credentials.get("device_id") or str(uuid.uuid4())
         self._last_response = {}
 
     async def _http(self, method, url, stage, **kwargs):
