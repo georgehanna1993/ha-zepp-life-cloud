@@ -3,6 +3,7 @@ import asyncio
 import importlib.util
 import json
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 import unittest
 
 FILE = Path(__file__).resolve().parents[1] / "custom_components/zepp_life_cloud/api.py"
@@ -76,14 +77,14 @@ class ParsingTests(unittest.TestCase):
 
 class ProtocolTests(unittest.IsolatedAsyncioTestCase):
     async def test_browser_authorization_url_uses_xiaomi_login_page(self):
-        url = "https://account.xiaomi.com/login?sid=zepp"
-        client = api.ZeppClient(Session(Response({"data": {"oauthLoginUrl": url}})), {"method": "browser"})
-        self.assertEqual(await client.authorization_url(), url)
-
-    async def test_browser_authorization_rejects_untrusted_login_url(self):
-        client = api.ZeppClient(Session(Response({"data": {"oauthLoginUrl": "https://evil.example/login"}})), {"method": "browser"})
-        with self.assertRaises(api.CloudError):
-            await client.authorization_url()
+        session = Session()
+        client = api.ZeppClient(session, {"method": "browser"})
+        url = await client.authorization_url()
+        parsed = urlsplit(url)
+        self.assertEqual(parsed.hostname, "account.xiaomi.com")
+        self.assertEqual(parse_qs(parsed.query)["_json"], ["false"])
+        self.assertEqual(parse_qs(parsed.query)["redirect_uri"], [api.CALLBACK])
+        self.assertEqual(session.calls, [])
 
     async def test_password_oauth_success_and_fields(self):
         session = password_session(Response({"items":[record()], "next":0}))

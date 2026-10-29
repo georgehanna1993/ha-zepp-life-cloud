@@ -133,21 +133,9 @@ class ZeppClient:
         return {"Cookie": "; ".join(cookies)}
 
     async def authorization_url(self):
-        """Get Xiaomi's login page URL for a user-driven browser login."""
-        text, redirect = await self._http(
-            "GET", AUTH_URL + "?" + urlencode(AUTH_PARAMS), "oauth_authorize"
-        )
-        if redirect:
-            return trusted_url(urljoin(AUTH_URL, redirect))
-        payload = decode_json(text, "oauth_authorize")
-        location = payload.get("location")
-        if location:
-            return trusted_url(urljoin(AUTH_URL, location))
-        data = payload.get("data")
-        login_url = data.get("oauthLoginUrl") if isinstance(data, dict) else None
-        if not login_url:
-            raise AuthError("oauth_authorize", payload)
-        return trusted_url(urljoin(AUTH_URL, login_url))
+        """Build Xiaomi's HTML authorization URL for an interactive browser login."""
+        params = {**AUTH_PARAMS, "_json": "false"}
+        return trusted_url(AUTH_URL + "?" + urlencode(params))
 
     async def _follow_code(self, url):
         for _ in range(12):
