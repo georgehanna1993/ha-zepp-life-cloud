@@ -12,7 +12,6 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from .api import ZeppClient, AuthError, CloudError
 from .const import DOMAIN, DEFAULT_INTERVAL
 
-SECRET = selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD))
 TEXT = selector.TextSelector()
 
 
@@ -37,7 +36,7 @@ class ZeppLifeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        return self.async_show_menu(step_id="user", menu_options=["browser", "password", "session"])
+        return await self.async_step_browser(user_input)
 
     async def async_step_browser(self, user_input=None):
         """Authenticate in Xiaomi's browser UI and exchange its callback code."""
@@ -104,52 +103,6 @@ class ZeppLifeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="browser", data_schema=vol.Schema(fields), errors=errors,
             description_placeholders=placeholders,
         )
-
-    async def async_step_password(self, user_input=None):
-        return await self._credentials("password", user_input)
-
-    async def async_step_session(self, user_input=None):
-        return await self._credentials("session", user_input)
-
-    async def _credentials(self, method, user_input):
-        errors = {}
-        placeholders = {"error_detail": ""}
-        if user_input is not None:
-            data = {**user_input, "method": method}
-            client = ZeppClient(async_create_clientsession(self.hass, cookie_jar=aiohttp.CookieJar()), data)
-            try:
-                async with asyncio.timeout(60):
-                    await client.latest()
-                data = client.export_credentials()
-                unique_id = client.user_id + ":" + str(data.get("member_id", "-1"))
-                if self.context.get("source") == config_entries.SOURCE_REAUTH:
-                    entry = self._get_reauth_entry()
-                    if entry.unique_id != unique_id:
-                        errors["base"] = "wrong_account"
-                    else:
-                        self.hass.config_entries.async_update_entry(entry, data=data)
-                        await self.hass.config_entries.async_reload(entry.entry_id)
-                        return self.async_abort(reason="reauth_successful")
-                else:
-                    await self.async_set_unique_id(unique_id)
-                    self._abort_if_unique_id_configured()
-                    return self.async_create_entry(title=user_input.get("name", "Zepp Life"), data=data)
-            except AuthError as err:
-                errors["base"] = "invalid_auth"
-                placeholders["error_detail"] = str(err)
-            except CloudError as err:
-                errors["base"] = "cloud_error"
-                placeholders["error_detail"] = str(err)
-            except (aiohttp.ClientError, TimeoutError):
-                errors["base"] = "cannot_connect"
-        fields = {vol.Required("name", default="Zepp Life"): TEXT}
-        if method == "password":
-            fields.update({vol.Required("username"): TEXT, vol.Required("password"): SECRET})
-        else:
-            fields.update({vol.Required("userId"): TEXT, vol.Required("passToken"): SECRET})
-        fields[vol.Optional("member_id", default="-1")] = TEXT
-        return self.async_show_form(step_id=method, data_schema=vol.Schema(fields),
-            errors=errors, description_placeholders=placeholders)
 
     async def async_step_reauth(self, entry_data):
         return await self.async_step_user()

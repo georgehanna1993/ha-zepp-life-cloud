@@ -1,9 +1,7 @@
-# Zepp Life Cloud for Home Assistant — experimental v0.3.0
+# Zepp Life Cloud for Home Assistant — experimental v0.4.0
 
 Native custom integration for Xiaomi scales connected through Zepp Life.
-This is a first implementation, NOT a confirmed working replacement against a live account.
-Offline tests pass; live Xiaomi login and a real Home Assistant installation have not been tested.
-It deliberately makes no claim of permanent unattended authentication.
+Initial browser sign-in and a cloud fetch appear to work in one Home Assistant setup. Broader scale compatibility, complete metric coverage and long-term token renewal are not yet verified.
 
 ## What it does
 
@@ -22,91 +20,37 @@ It deliberately makes no claim of permanent unattended authentication.
   and automatic login retry when cloud access is rejected.
 - Reads the latest valid record. It does NOT import old records into HA's historical statistics.
   HA records future sensor states normally once installed.
-- Browser login lets Xiaomi handle its own sign-in and verification page. You paste the short-lived
-  Zepp callback URL (or code) into the local Home Assistant flow; the integration then exchanges it
-  for and caches the Zepp app token. Browser grants require Home Assistant reauthentication if revoked.
-- Password and existing-session methods remain available as experimental alternatives.
+- Xiaomi browser sign-in is the only setup method. You paste the short-lived Zepp callback code into the local Home Assistant flow; the integration then exchanges it for and caches the Zepp app token. If authorization expires, Home Assistant asks you to sign in again in the browser.
 
-## Install through HACS
+## Install and sign in
 
-1. HACS > three-dot menu > Custom repositories.
-2. Repository: https://github.com/georgehanna1993/ha-zepp-life-cloud
-3. Type: Integration. Add, then download Zepp Life Cloud.
-4. Restart Home Assistant.
-5. Settings > Devices & services > Add integration > Zepp Life Cloud.
+### Add the repository in HACS
 
-## Manual installation
+1. Open **HACS → Integrations**.
+2. Open the **⋮** menu and choose **Custom repositories**.
+3. Enter https://github.com/georgehanna1993/ha-zepp-life-cloud.
+4. Select **Integration**, then choose **Add**.
+5. Find **Zepp Life Cloud** in HACS and download it.
+6. Restart Home Assistant.
+7. Go to **Settings → Devices & services → Add integration** and select **Zepp Life Cloud**.
 
-1. Extract the ZIP on your computer.
-2. Copy the whole custom_components/zepp_life_cloud folder into
-   /config/custom_components/zepp_life_cloud on Home Assistant.
-   manifest.json must sit directly inside that final folder.
-3. Restart Home Assistant.
-4. Settings > Devices & services > Add integration > Zepp Life Cloud.
-   If it is missing, refresh the browser after the restart.
-5. Choose **Sign in through Xiaomi in your browser**. Complete sign-in and any verification in the
-   Xiaomi page opened by the flow. When it redirects to the Zepp callback, copy that final address
-   (or just the `code` value) into the Home Assistant form. The short-lived code is entered only in HA.
-   The integration checks cloud access before creating an entry.
-6. If you prefer, the Xiaomi email/ID and password or existing-session methods remain available.
-   Password-based verification errors show the failed stage and sanitized details.
-7. Once connected, use Configure to choose the polling interval. The default is one hour.
-   Sync now triggers a read on demand.
+### Before setup
 
-No YAML is added to configuration.yaml. Disable the SmartScaleConnect add-on while testing
-to avoid competing sessions. Do not delete existing HA or add-on config files.
+The scale must be paired with the **Zepp Life phone app**, and the app must have synced at least one measurement to the cloud. If it is already paired and synced, leave it as it is; you do not need to be near the scale or pair it again.
 
-## Existing Xiaomi session: verification fallback
+Compatibility has only been tried with the scale used for this setup. Its exact model has not been recorded, so other scale models and their available metrics are unverified. You are welcome to try it and report what works.
 
-This is an experimental alternate authentication route, not a guaranteed workaround.
-It reuses a real Xiaomi login rather than trying to evade verification.
+### Xiaomi browser sign-in
 
-Option A — your own desktop browser:
-1. Sign in normally at https://account.xiaomi.com/ and finish any verification.
-2. Open developer tools > Application (Chrome/Edge) > Cookies for account.xiaomi.com.
-3. If the cookies userId and passToken are present, enter their values in the HA integration's
-   Existing Xiaomi session form. Do not paste the entire Cookie header.
-4. If these cookies are absent, try option B. Do not use serviceToken, ssecurity, a device's
-   32-character token, or your Google token.
+1. In the Home Assistant form, copy the **Xiaomi sign-in URL** and open it in a browser tab.
+2. Sign in on Xiaomi’s website using the Xiaomi account linked to Zepp Life, and complete any verification Xiaomi requests. Do not enter your password in the Home Assistant form.
+3. After sign-in, the browser redirects to a Zepp address like:
+   https://api-mifit-cn.huami.com/huami.health.loginview.do?code=ALSG_CLOUDSRV_ABC123&...
+   The callback page may show a routes-not-found message; use the address bar URL. Copy only the code value after **code=** and before the next **&**. In this example, copy **ALSG_CLOUDSRV_ABC123**—not code= and not the rest of the URL.
+4. Return to Home Assistant, paste that value into **Code from the callback URL**, leave **Member ID** as **-1** for the main profile, and submit promptly. The code is short-lived. Never send it in chat.
+5. When setup succeeds, Home Assistant creates the cloud sensors. Polling defaults to every 60 minutes; use **Sync now** for an immediate refresh.
 
-Option B — the maintainer's documented go2rtc Xiaomi login:
-1. go2rtc v1.9.13+ has WebUI > Add > Xiaomi.
-2. Log in to Xiaomi there and complete email/SMS/captcha verification.
-3. Its YAML contains xiaomi: followed by your numeric account ID and a V1:... value.
-4. Enter the numeric key as userId and the entire V1:... value as passToken in this integration.
-   Do not include the account ID in the passToken field.
-5. You do not need a camera for this integration; the session comes from Xiaomi account login.
-   Availability of go2rtc's account login without linked cameras still needs verification.
-
-The integration attempts the Zepp Life OAuth authorization using this Xiaomi session and caches
-the resulting Zepp app token. Its session path is new and has only been tested against simulated
-cloud responses. If Xiaomi responds differently, the form reports the stage without leaking secrets.
-
-Reference: https://github.com/AlexxIT/go2rtc/blob/master/internal/xiaomi/README.md
-
-## What we found in SmartScaleConnect v0.4.2
-
-The add-on runs scaleconnect -i -r with a default sleep of 24h. /config is its working directory.
-The sync configuration can arrive through hassio.addon_stdin.
-Its options schema only contains sleep; credentials do not belong in HA configuration.yaml.
-
-For zepp/xiaomi the flow is:
-Xiaomi OAuth authorize -> oauthLoginUrl -> Xiaomi password request -> redirect/code ->
-Zepp token exchange -> Zepp weightRecords endpoint.
-
-There are TWO unchecked empty URL sites in that Xiaomi OAuth implementation:
-data.oauthLoginUrl and the password response location. Either can cause Get "":
-unsupported protocol scheme "". Password error codes, captchaUrl and notificationUrl
-are not handled before the redirect is requested. Your log cannot distinguish the two.
-
-The maintainer confirms verification can cause this symptom. The XiaomiGateway3/go2rtc
-xiaomi: token workaround in issue #4 concerns Xiaomi cloud clients. The zepp/xiaomi client
-does not load that Xiaomi token in the same path; it uses its own zepp/xiaomi: cached
-user-id:app-token. Simply putting a Xiaomi token into that key is incorrect.
-
-The custom client validates each stage, uses a cookie jar and persistent device identifier,
-parses OAuth codes by name, restricts redirects to known HTTPS hosts, and adds session reuse.
-The actual upstream response for the affected account has not been observed.
+No YAML is needed. Measurements appear only after Zepp Life has uploaded them to the cloud.
 
 ## Reliability and privacy
 
@@ -115,12 +59,10 @@ The actual upstream response for the affected account has not been observed.
   HA cannot obtain weighings the phone has not uploaded.
 - Cloud login may log the phone out; SmartScaleConnect documents that behavior and this
   implementation cannot guarantee a separate phone session.
-- Passwords / session tokens are stored in HA config entries like other integrations.
-  Protect HA backups. No credentials or response bodies are logged by this integration.
+- The Zepp app token is stored in the HA config entry. Protect HA backups. No credentials or response bodies are logged by this integration.
 - Diagnostics omit account identifiers, tokens, measurements and URLs.
 - Only read requests are made to measurement endpoints. No weighings are written or deleted.
-- Initial login makes a POST to the account service; password mode retains the Xiaomi password
-  so it can retry authentication. Session mode does not require the password.
+- Initial sign-in exchanges a short-lived Xiaomi authorization code for a Zepp app token.
 - HTTP 429 is reported as a rate limit; there are no rapid retry loops.
 - No requests go to third-party telemetry services.
 - The session can expire or require renewed verification; a new integration cannot remove
