@@ -1,98 +1,79 @@
-# Zepp Life Cloud for Home Assistant — experimental v0.4.0
+<div align='center'>
 
-Native custom integration for Xiaomi scales connected through Zepp Life.
-Initial browser sign-in and a cloud fetch appear to work in one Home Assistant setup. Broader scale compatibility, complete metric coverage and long-term token renewal are not yet verified.
+<img src='docs/flow-banner.svg' alt='Flow: scale to Zepp Life app to cloud to Home Assistant' width='100%' />
 
-## What it does
+<h1>Zepp Life Cloud</h1>
 
-- Polls Zepp Life cloud every 60 minutes (configurable 15–1440).
-- Runs as an HA integration; no SmartScaleConnect add-on, MQTT or Bluetooth needed.
-- Reads the main scale profile (-1) or a numeric family member ID.
-- Creates weight, BMI, body fat, body water, muscle mass, bone mass, protein percentage,
-  visceral fat index, BMR, body age, body score, body type, standard weight, impedance, height, balance score, last measurement and last sync sensors.
-- Groups sensor names by measurement, composition, metabolism, reference values and sync status, with a distinct icon for every known metric. The seconds-based one-foot balance sensor is omitted.
-- Automatically creates separate sensors for extra numeric body metrics returned by the cloud.
-  Technical fields such as source and device type are excluded. Raw numeric summaries are also
-  available as weight-sensor attributes.
-- Only uses values supplied by the cloud. Missing/zero placeholder composition values
-  show unknown; it does not invent estimates.
-- Includes a Sync now button, safe diagnostics, reauthentication flow, cached Zepp app token,
-  and automatic login retry when cloud access is rejected.
-- Reads the latest valid record. It does NOT import old records into HA's historical statistics.
-  HA records future sensor states normally once installed.
-- Xiaomi browser sign-in is the only setup method. You paste the short-lived Zepp callback code into the local Home Assistant flow; the integration then exchanges it for and caches the Zepp app token. If authorization expires, Home Assistant asks you to sign in again in the browser.
+<a href='https://github.com/georgehanna1993/ha-zepp-life-cloud/actions/workflows/tests.yml'><img src='https://github.com/georgehanna1993/ha-zepp-life-cloud/actions/workflows/tests.yml/badge.svg' alt='Tests' /></a>
+<img src='https://img.shields.io/badge/HACS-Custom-41BDF5?logo=home-assistant&logoColor=white' alt='HACS custom integration' />
+<img src='https://img.shields.io/badge/version-0.4.0-0E8794' alt='Version 0.4.0' />
 
-## Install and sign in
+<p><strong>Bring Zepp Life scale measurements into Home Assistant automatically.</strong></p>
+<p>Browser sign-in · Cloud polling · No Bluetooth receiver required</p>
 
-### Add the repository in HACS
+</div>
 
-1. Open **HACS → Integrations**.
-2. Open the **⋮** menu and choose **Custom repositories**.
-3. Enter https://github.com/georgehanna1993/ha-zepp-life-cloud.
-4. Select **Integration**, then choose **Add**.
-5. Find **Zepp Life Cloud** in HACS and download it.
-6. Restart Home Assistant.
-7. Go to **Settings → Devices & services → Add integration** and select **Zepp Life Cloud**.
+## ✨ Get started
 
-### Before setup
+| 1 · Add repo | 2 · Install | 3 · Restart | 4 · Add integration |
+|:--|:--|:--|:--|
+| HACS → Integrations → ⋮ → **Custom repositories** | Add this URL as type **Integration** | Download **Zepp Life Cloud**, then restart HA | Settings → Devices & services → **Add integration** → Zepp Life Cloud |
 
-The scale must be paired with the **Zepp Life phone app**, and the app must have synced at least one measurement to the cloud. If it is already paired and synced, leave it as it is; you do not need to be near the scale or pair it again.
+<p align='center'><strong>Repository URL</strong><br/><code>https://github.com/georgehanna1993/ha-zepp-life-cloud</code></p>
 
-Compatibility has only been tried with the scale used for this setup. Its exact model has not been recorded, so other scale models and their available metrics are unverified. You are welcome to try it and report what works.
+> 📱 **Before setup:** your scale must be paired with Zepp Life and the app must have synced at least one measurement. If it is already paired and synced, you do not need to pair it again or be at home.
 
-### Xiaomi browser sign-in
+## 🔐 Sign in — browser only
 
 1. In the Home Assistant form, copy the **Xiaomi sign-in URL** and open it in a browser tab.
-2. Sign in on Xiaomi’s website using the Xiaomi account linked to Zepp Life, and complete any verification Xiaomi requests. Do not enter your password in the Home Assistant form.
-3. After sign-in, the browser redirects to a Zepp address like:
-   https://api-mifit-cn.huami.com/huami.health.loginview.do?code=ALSG_CLOUDSRV_ABC123&...
-   The callback page may show a routes-not-found message; use the address bar URL. Copy only the code value after **code=** and before the next **&**. In this example, copy **ALSG_CLOUDSRV_ABC123**—not code= and not the rest of the URL.
-4. Return to Home Assistant, paste that value into **Code from the callback URL**, leave **Member ID** as **-1** for the main profile, and submit promptly. The code is short-lived. Never send it in chat.
-5. When setup succeeds, Home Assistant creates the cloud sensors. Polling defaults to every 60 minutes; use **Sync now** for an immediate refresh.
+2. Sign in on Xiaomi’s website with the Xiaomi account linked to Zepp Life. Complete any verification Xiaomi requests. Your password is entered on Xiaomi’s site, not in Home Assistant.
+3. After sign-in, the browser redirects to a Zepp callback address. The page may say **routes not found**; that is okay. Use the address bar.
 
-No YAML is needed. Measurements appear only after Zepp Life has uploaded them to the cloud.
+<pre><code>https://api-mifit-cn.huami.com/huami.health.loginview.do?code=ALSG_CLOUDSRV_ABC123&amp;...</code></pre>
 
-## Reliability and privacy
+Copy **only the value after code= and before the next &amp;**. In the example above, the code to copy is:
 
-- This unofficial service can change without notice.
-- The phone must still sync the scale with Zepp Life and upload measurements first.
-  HA cannot obtain weighings the phone has not uploaded.
-- Cloud login may log the phone out; SmartScaleConnect documents that behavior and this
-  implementation cannot guarantee a separate phone session.
-- The Zepp app token is stored in the HA config entry. Protect HA backups. No credentials or response bodies are logged by this integration.
-- Diagnostics omit account identifiers, tokens, measurements and URLs.
-- Only read requests are made to measurement endpoints. No weighings are written or deleted.
-- Initial sign-in exchanges a short-lived Xiaomi authorization code for a Zepp app token.
-- HTTP 429 is reported as a rate limit; there are no rapid retry loops.
-- No requests go to third-party telemetry services.
-- The session can expire or require renewed verification; a new integration cannot remove
-  Xiaomi's authentication requirements.
+<p align='center'><code><strong>ALSG_CLOUDSRV_ABC123</strong></code></p>
 
-## Testing
+4. Paste that code into **Code from the callback URL** in Home Assistant. Leave **Member ID** as **-1** for the main profile, then submit promptly—the code expires. **Never share the code in chat.**
+5. After setup, the integration checks the cloud every 60 minutes by default. Use **Sync now** for an immediate refresh.
 
-Run from the extracted project directory:
-python -m unittest discover -s tests -v
-python -m compileall -q custom_components
+## 📊 What you’ll get
 
-Tests use simulated HTTP and real client code. They cover OAuth password/session flows,
-verification rejection, empty redirects, token retry, account isolation, record filtering,
-pagination and unsafe redirect rejection. No live credentials were used. Sensor extraction and dynamic discovery are also tested
-against small HA interface stubs; these do not replace a full HA runtime test.
-HA platform code was syntax-checked; full HA runtime/hassfest validation was not available here.
+- Separate sensors for weight, BMI, fat, water, muscle, bone, protein, visceral fat, BMR, body age, body score, impedance and other values the cloud returns.
+- Metric-specific icons and grouped sensor names.
+- Only actual Zepp Life cloud values; no locally calculated body composition.
+- A measurement-time sensor, sync status, configurable polling and a **Sync now** button.
 
-## Sources and attribution
+<details>
+<summary>Compatibility and availability</summary>
 
-- SmartScaleConnect v0.4.2:
-  https://github.com/AlexxIT/SmartScaleConnect/tree/v0.4.2
-- Authentication implementation:
-  https://github.com/AlexxIT/SmartScaleConnect/blob/v0.4.2/pkg/xiaomi/auth.go
-  https://github.com/AlexxIT/SmartScaleConnect/blob/v0.4.2/pkg/zepp/auth.go
-- Cloud fields and endpoints:
-  https://github.com/AlexxIT/SmartScaleConnect/blob/v0.4.2/pkg/zepp/client.go
-- Maintainer discussion: https://github.com/AlexxIT/SmartScaleConnect/issues/4
-- HA config flow / coordinator documentation:
-  https://developers.home-assistant.io/docs/config_entries_config_flow_handler/
-  https://developers.home-assistant.io/docs/integration_fetching_data/
+Live sign-in and a cloud fetch appear to work in one Home Assistant setup. Compatibility has only been tried with the scale used for that setup; its exact model was not recorded. Other scale models and their available metrics are unverified—feel free to try it and report what works.
 
-Endpoint and field mapping research was derived from AlexxIT's MIT-licensed
-SmartScaleConnect. Original license notice is included in THIRD_PARTY_LICENSES.txt.
+Measurements must first be uploaded by the Zepp Life phone app. Home Assistant reads cloud data; it does not need a Bluetooth connection to the scale.
+</details>
+
+<details>
+<summary>Privacy, troubleshooting and tests</summary>
+
+- The integration reads measurements from Zepp Life cloud and does not modify them.
+- The Zepp app token is stored in the Home Assistant config entry; protect your HA backups.
+- Xiaomi may require a fresh browser sign-in if authorization expires.
+- The callback code is short-lived. Copy the value after code= and submit it promptly.
+
+Run the offline checks from the repository folder:
+
+<pre><code>python -m unittest discover -s tests -v
+python -m compileall -q custom_components</code></pre>
+
+Tests use simulated cloud responses; they do not verify every scale model or replace a full Home Assistant runtime test.
+</details>
+
+<details>
+<summary>Technical notes and attribution</summary>
+
+This unofficial integration uses the Zepp Life cloud API. The service may change without notice. Endpoint and field mapping are based on AlexxIT’s MIT-licensed [SmartScaleConnect](https://github.com/AlexxIT/SmartScaleConnect/tree/v0.4.2); attribution is in [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt).
+
+</details>
+
+<p align='center'>Made for the simple path: <strong>scale → Zepp Life → cloud → Home Assistant</strong></p>
