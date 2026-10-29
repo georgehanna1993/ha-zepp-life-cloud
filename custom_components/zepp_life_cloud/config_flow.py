@@ -9,10 +9,11 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
-from .api import ZeppClient, AuthError, CloudError
+from .api import ZeppClient, AuthError, CloudError, parse_web_session
 from .const import DOMAIN, DEFAULT_INTERVAL
 
 TEXT = selector.TextSelector()
+SECRET_TEXT = selector.TextSelector(selector.TextSelectorConfig(type="password"))
 
 
 def _authorization_code(value):
@@ -36,7 +37,57 @@ class ZeppLifeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        return await self.async_step_browser(user_input)
+        return self.async_show_menu(step_id="user", menu_options=["web_session", "browser"])
+
+    async def async_step_web_session(self, user_input=None):
+        """Use an existing Zepp website session without another mobile-style login."""
+        errors = {}
+        placeholders = {"error_detail": ""}
+        if user_input is not None:
+            try:
+                credentials = parse_web_session(user_input["web_session"])
+                member_id = user_input.get("member_id", "-1")
+                data = {"method": "web_session", "member_id": member_id, **credentials}
+                client = ZeppClient(
+                    async_create_clientsession(self.hass, cookie_jar=aiohttp.CookieJar()), data
+                )
+                async with asyncio.timeout(60):
+                    await client.latest()
+                unique_id = client.user_id + ":" + str(member_id)
+                if self.source in (config_entries.SOURCE_REAUTH, config_entries.SOURCE_RECONFIGURE):
+                    entry = (self._get_reauth_entry()
+                             if self.source == config_entries.SOURCE_REAUTH
+                             else self._get_reconfigure_entry())
+                    if entry.unique_id != unique_id:
+                        errors["base"] = "wrong_account"
+                    else:
+                        # The entry update listener schedules the reload.
+                        return self.async_update_and_abort(
+                            entry, data=client.export_credentials()
+                        )
+                else:
+                    await self.async_set_unique_id(unique_id)
+                    self._abort_if_unique_id_configured()
+                    return self.async_create_entry(
+                        title="Zepp Life", data=client.export_credentials()
+                    )
+            except AuthError as err:
+                errors["base"] = "invalid_auth"
+                placeholders["error_detail"] = str(err)
+            except CloudError as err:
+                errors["base"] = "cloud_error"
+                placeholders["error_detail"] = str(err)
+            except (aiohttp.ClientError, TimeoutError):
+                errors["base"] = "cannot_connect"
+        return self.async_show_form(
+            step_id="web_session",
+            data_schema=vol.Schema({
+                vol.Required("web_session"): SECRET_TEXT,
+                vol.Optional("member_id", default="-1"): TEXT,
+            }),
+            errors=errors,
+            description_placeholders=placeholders,
+        )
 
     async def async_step_browser(self, user_input=None):
         """Authenticate in Xiaomi's browser UI and exchange its callback code."""
@@ -55,14 +106,15 @@ class ZeppLifeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     await client.latest()
                 data = client.export_credentials()
                 unique_id = client.user_id + ":" + str(member_id)
-                if self.context.get("source") == config_entries.SOURCE_REAUTH:
-                    entry = self._get_reauth_entry()
+                if self.source in (config_entries.SOURCE_REAUTH, config_entries.SOURCE_RECONFIGURE):
+                    entry = (self._get_reauth_entry()
+                             if self.source == config_entries.SOURCE_REAUTH
+                             else self._get_reconfigure_entry())
                     if entry.unique_id != unique_id:
                         errors["base"] = "wrong_account"
                     else:
-                        self.hass.config_entries.async_update_entry(entry, data=data)
-                        await self.hass.config_entries.async_reload(entry.entry_id)
-                        return self.async_abort(reason="reauth_successful")
+                        # The entry update listener schedules the reload.
+                        return self.async_update_and_abort(entry, data=data)
                 else:
                     await self.async_set_unique_id(unique_id)
                     self._abort_if_unique_id_configured()
@@ -105,6 +157,9 @@ class ZeppLifeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_reauth(self, entry_data):
+        return await self.async_step_user()
+
+    async def async_step_reconfigure(self, user_input=None):
         return await self.async_step_user()
 
     @staticmethod

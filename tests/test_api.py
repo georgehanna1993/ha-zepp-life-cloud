@@ -3,7 +3,7 @@ import asyncio
 import importlib.util
 import json
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit
 import unittest
 
 FILE = Path(__file__).resolve().parents[1] / "custom_components/zepp_life_cloud/api.py"
@@ -49,6 +49,20 @@ def password_session(*last):
         Response({}, redirect=callback()), token(), *last)
 
 class ParsingTests(unittest.TestCase):
+    def test_web_session_cookie_extracts_only_needed_credentials(self):
+        cookie = {"token_info": {"app_token": "cloud-secret", "user_id": 123,
+                                 "login_token": "must-not-be-stored"}}
+        for value in (json.dumps(cookie), quote(json.dumps(cookie))):
+            with self.subTest(encoded=value.startswith("%")):
+                self.assertEqual(api.parse_web_session(value),
+                                 {"app_token": "cloud-secret", "zepp_user_id": "123"})
+
+    def test_web_session_cookie_errors_never_echo_secret(self):
+        for value in ("secret", json.dumps({"token_info": {"app_token": "secret"}})):
+            with self.subTest(value=value), self.assertRaises(api.CloudError) as ctx:
+                api.parse_web_session(value)
+            self.assertNotIn("secret", str(ctx.exception))
+
     def test_xiaomi_prefix(self):
         self.assertEqual(api.decode_json('&&&START&&&{"code":0}', "test"), {"code":0})
     def test_bad_json_sanitized(self):
@@ -128,6 +142,14 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
         await api.ZeppClient(session, {"zepp_user_id":"123","app_token":"cached"}).latest()
         self.assertEqual(len(session.calls),1)
         self.assertEqual(session.calls[0][2]["headers"]["apptoken"],"cached")
+    async def test_web_session_does_not_login_after_token_rejection(self):
+        session = Session(Response({}, status=401))
+        client = api.ZeppClient(session, {"method":"web_session", "zepp_user_id":"123",
+                                          "app_token":"expired"})
+        with self.assertRaises(api.AuthError):
+            await client.latest()
+        self.assertEqual(len(session.calls), 1)
+        self.assertEqual(session.calls[0][0], "GET")
     async def test_auth_retry_once(self):
         session = password_session(Response({"items":[record()]}))
         session.responses.insert(0,Response({},status=401))

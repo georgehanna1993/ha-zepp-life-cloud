@@ -11,7 +11,7 @@ import math
 import re
 import time
 import uuid
-from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
+from urllib.parse import parse_qs, unquote, urlencode, urljoin, urlsplit
 
 AUTH_URL = "https://account.xiaomi.com/oauth2/authorize"
 CALLBACK = "https://api-mifit-cn.huami.com/huami.health.loginview.do"
@@ -62,6 +62,34 @@ def decode_json(text, stage):
     if not isinstance(value, dict):
         raise CloudError(f"{stage}: unexpected response format.")
     return value
+
+
+def parse_web_session(value):
+    """Extract only read credentials from the Zepp website session cookie.
+
+    Accept the raw or URL-encoded ``hm-user-login-info`` cookie value. Never
+    persist the full cookie or its separate login token.
+    """
+    if not isinstance(value, str) or not 0 < len(value) <= 16384:
+        raise CloudError("Paste the hm-user-login-info cookie value from the Zepp website.")
+    try:
+        payload = json.loads(value)
+    except ValueError:
+        try:
+            payload = json.loads(unquote(value))
+        except ValueError:
+            raise CloudError("The Zepp website cookie is not valid JSON.") from None
+    if not isinstance(payload, dict):
+        raise CloudError("The Zepp website cookie has an unexpected format.")
+    token_info = payload.get("token_info", payload)
+    if not isinstance(token_info, dict):
+        raise CloudError("The Zepp website cookie has no token information.")
+    app_token = token_info.get("app_token")
+    user_id = str(token_info.get("user_id", ""))
+    if (not isinstance(app_token, str) or not 0 < len(app_token) <= 4096
+            or any(char.isspace() for char in app_token) or not user_id.isdigit()):
+        raise CloudError("The Zepp website cookie has no usable app token and user ID.")
+    return {"app_token": app_token, "zepp_user_id": user_id}
 
 
 def latest_record(items):
@@ -283,8 +311,8 @@ class ZeppClient:
         try:
             return await self._records()
         except AuthError:
-            if self.credentials.get("method") == "browser":
-                # Browser grants cannot be renewed silently; HA will start reauth.
+            if self.credentials.get("method") in ("browser", "web_session"):
+                # Neither browser grant can be renewed silently; HA starts reauth.
                 raise
             await self.login()
             return await self._records()

@@ -6,10 +6,10 @@
 
 <a href='https://github.com/georgehanna1993/ha-zepp-life-cloud/actions/workflows/tests.yml'><img src='https://github.com/georgehanna1993/ha-zepp-life-cloud/actions/workflows/tests.yml/badge.svg' alt='Tests' /></a>
 <img src='https://img.shields.io/badge/HACS-Custom-41BDF5?logo=home-assistant&logoColor=white' alt='HACS custom integration' />
-<img src='https://img.shields.io/badge/version-0.4.0-0E8794' alt='Version 0.4.0' />
+<img src='https://img.shields.io/badge/version-0.5.0-0E8794' alt='Version 0.5.0' />
 
 <p><strong>Bring Zepp Life scale measurements into Home Assistant automatically.</strong></p>
-<p>Browser sign-in · Cloud polling · No Bluetooth receiver required</p>
+<p>Cloud polling · No Bluetooth receiver required · Experimental website-session sign-in</p>
 
 </div>
 
@@ -25,11 +25,22 @@
 
 ## ✅ Before you sign in
 
-> 🪪 **Xiaomi account:** If you do not have one, create it at [account.xiaomi.com](https://account.xiaomi.com/). In the **existing Zepp Life profile**, open **Profile → Settings → Account and security** and add/link that Xiaomi account. If you originally used Google, keep that same Zepp Life profile—do not create a second one. If the Xiaomi account is already linked, skip this step.
+> 🪪 **Account:** Use the account already linked to your Zepp Life profile. The Xiaomi browser sign-in method below requires a linked Xiaomi account. The experimental Zepp website-session method requires the Zepp website to sign in to the same profile; it may not support every Zepp Life account.
 >
 > ⚖️ **Scale:** If the scale is not paired yet, open **Profile → Add device** in Zepp Life, choose your scale and follow the pairing prompts. Then sync at least one measurement. If it is already paired and synced, do not pair it again.
 
-## 🔐 Sign in — browser only
+## 🔐 Sign in without a new phone-style login (experimental)
+
+The Xiaomi sign-in method used by earlier versions can log out the Zepp Life phone app. [SmartScaleConnect, whose endpoint behavior this integration follows, reports the same limitation](https://github.com/AlexxIT/SmartScaleConnect#readme). Version 0.5.0 adds a website-session option that reads an existing Zepp website token instead of exchanging a new Xiaomi authorization code. Another [Zepp cloud client reports that this route does not log out the phone app](https://github.com/dimonier/amazfit-sync), but it is **not yet verified for every Zepp Life/Xiaomi-linked account**.
+
+1. In a browser, sign in at [watchface.zepp.com](https://watchface.zepp.com/) using the account linked to your Zepp Life profile. If the website cannot access that same profile, this option will not work.
+2. Open the browser's developer tools, find **Application/Storage → Cookies → watchface.zepp.com**, then find the `hm-user-login-info` cookie. Copy **only its Value**. This cookie is a secret; do not paste it into chat, an issue, or a public log.
+3. In Home Assistant, open the existing Zepp Life integration's **Reconfigure** flow (or add the integration for a new account), then choose **Existing Zepp website session**. Paste the cookie Value into the password-style field. Leave **Member ID** as `-1` for the main profile, or enter the existing family member ID.
+4. Home Assistant extracts only `app_token` and `user_id` from the cookie and verifies access with one read request. It does not store the full cookie or its separate login token. If the account differs from an existing entry, reauthentication is rejected without replacing its credentials.
+
+If Zepp rejects the token, this method stops and asks for reauthentication. It does not silently invoke the Xiaomi login flow. A token can still expire or be invalidated by Zepp. The integration has no verified way to renew a website token without another browser session.
+
+## 🔐 Xiaomi browser sign-in (may log out the phone app)
 
 1. In the Home Assistant form, copy the **Xiaomi sign-in URL** and open it in a browser tab.
 2. Sign in on Xiaomi’s website with the Xiaomi account linked to Zepp Life. Complete any verification Xiaomi requests. Your password is entered on Xiaomi’s site, not in Home Assistant.

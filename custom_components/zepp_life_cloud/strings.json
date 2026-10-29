@@ -2,9 +2,25 @@
   "title": "Zepp Life Cloud",
   "config": {
     "step": {
+      "user": {
+        "title": "Connect Zepp Life",
+        "description": "Choose how Home Assistant reads your Zepp Life cloud account. The Zepp website session option is experimental and may avoid logging out the phone app.",
+        "menu_options": {
+          "web_session": "Existing Zepp website session (experimental)",
+          "browser": "Xiaomi sign-in (may log out phone app)"
+        }
+      },
+      "web_session": {
+        "title": "Use a Zepp website session",
+        "description": "Sign in at https://watchface.zepp.com/ with the same linked account. In your browser's developer tools, find the hm-user-login-info cookie and copy only its Value into this form. Home Assistant extracts only the app token and user ID, then checks the scale records. Keep this cookie private; never paste it into chat. This experimental method may not work for every Zepp Life account. {error_detail}",
+        "data": {
+          "web_session": "hm-user-login-info cookie value",
+          "member_id": "Scale family member ID (-1 = main profile)"
+        }
+      },
       "browser": {
         "title": "Sign in to Xiaomi",
-        "description": "Open the Xiaomi sign-in URL shown in this form in a browser tab. Sign in and complete any verification. When the browser reaches the Zepp callback address, copy only the value after code= and before the next ampersand. Paste that code into Authorization here. The code expires, so submit it promptly. Never paste it into chat. {error_detail}",
+        "description": "This login may log out the Zepp Life phone app. Open the Xiaomi sign-in URL shown in this form in a browser tab. Sign in and complete any verification. When the browser reaches the Zepp callback address, copy only the value after code= and before the next ampersand. Paste that code into Authorization here. The code expires, so submit it promptly. Never paste it into chat. {error_detail}",
         "data": {
           "login_url": "Xiaomi sign-in URL (copy and open in a browser tab)",
           "authorization": "Code from the callback URL (characters after code=)",
