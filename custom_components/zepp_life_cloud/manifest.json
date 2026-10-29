@@ -1,7 +1,7 @@
 {
   "domain": "zepp_life_cloud",
   "name": "Zepp Life Cloud",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "config_flow": true,
   "documentation": "https://github.com/georgehanna1993/ha-zepp-life-cloud",
   "iot_class": "cloud_polling",
