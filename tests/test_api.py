@@ -150,12 +150,12 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
             await client.latest()
         self.assertEqual(len(session.calls), 1)
         self.assertEqual(session.calls[0][0], "GET")
-    async def test_auth_retry_once(self):
-        session = password_session(Response({"items":[record()]}))
-        session.responses.insert(0,Response({},status=401))
+    async def test_legacy_credentials_do_not_login_after_token_rejection(self):
+        session = Session(Response({},status=401))
         client = api.ZeppClient(session, {"zepp_user_id":"123","app_token":"expired","username":"u","password":"p"})
-        self.assertIsNotNone(await client.latest())
-        self.assertEqual(len(session.calls),7)
+        with self.assertRaises(api.AuthError):
+            await client.latest()
+        self.assertEqual(len(session.calls),1)
     async def test_exchange_uses_upstream_canonical_device_uuid(self):
         session = Session(token())
         client = api.ZeppClient(session, {})

@@ -308,11 +308,6 @@ class ZeppClient:
     async def latest(self):
         if not self.app_token:
             await self.login()
-        try:
-            return await self._records()
-        except AuthError:
-            if self.credentials.get("method") in ("browser", "web_session"):
-                # Neither browser grant can be renewed silently; HA starts reauth.
-                raise
-            await self.login()
-            return await self._records()
+        # A rejected token means the phone may have established a new session.
+        # Never compete with it by silently logging in again; HA starts reauth.
+        return await self._records()

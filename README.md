@@ -38,7 +38,7 @@ The Xiaomi sign-in method used by earlier versions can log out the Zepp Life pho
 3. In Home Assistant, open the existing Zepp Life integration's **Reconfigure** flow (or add the integration for a new account), then choose **Existing Zepp website session**. Paste the cookie Value into the password-style field. Leave **Member ID** as `-1` for the main profile, or enter the existing family member ID.
 4. Home Assistant extracts only `app_token` and `user_id` from the cookie and verifies access with one read request. It does not store the full cookie or its separate login token. If the account differs from an existing entry, reauthentication is rejected without replacing its credentials.
 
-If Zepp rejects the token, this method stops and asks for reauthentication. It does not silently invoke the Xiaomi login flow. A token can still expire or be invalidated by Zepp. The integration has no verified way to renew a website token without another browser session.
+If Zepp rejects a token, the integration stops and asks for reauthentication. It does not silently invoke the Xiaomi login flow, even for older setups, so it will not kick the phone app out in a login loop. A token can still expire or be invalidated by Zepp. The integration has no verified way to renew a website token without another browser session.
 
 ## 🔐 Xiaomi browser sign-in (may log out the phone app)
 
